@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import api from '@/utils/api'
 
-export const useAuthStore = create((set) => ({
+const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
   loading: false,
@@ -58,3 +58,5 @@ export const useAuthStore = create((set) => ({
     }
   }
 }))
+
+export default useAuthStore

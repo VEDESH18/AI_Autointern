@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import api from '@/utils/api'
 
-export const useApplicationStore = create((set) => ({
+const useApplicationStore = create((set) => ({
   applications: [],
   stats: null,
   loading: false,
@@ -42,3 +42,5 @@ export const useApplicationStore = create((set) => ({
     }
   }
 }))
+
+export default useApplicationStore

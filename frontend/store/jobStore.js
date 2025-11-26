@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import api from '@/utils/api'
 
-export const useJobStore = create((set) => ({
+const useJobStore = create((set) => ({
   jobs: [],
   currentJob: null,
   loading: false,
@@ -43,3 +43,5 @@ export const useJobStore = create((set) => ({
     }
   }
 }))
+
+export default useJobStore
