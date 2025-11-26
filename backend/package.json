@@ -1,0 +1,45 @@
+{
+  "name": "autoapply-backend",
+  "version": "1.0.0",
+  "description": "AutoApply+Prep Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "studio": "prisma studio"
+  },
+  "keywords": ["job", "automation", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.8.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4",
+    "mongoose": "^8.0.3",
+    "axios": "^1.6.2",
+    "playwright": "^1.40.1",
+    "cheerio": "^1.0.0-rc.12",
+    "pdfkit": "^0.14.0",
+    "bullmq": "^5.0.0",
+    "redis": "^4.6.12",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "express-session": "^1.17.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.8.0",
+    "nodemon": "^3.0.2"
+  }
+}

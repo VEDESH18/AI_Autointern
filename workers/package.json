@@ -1,0 +1,21 @@
+{
+  "name": "autoapply-workers",
+  "version": "1.0.0",
+  "description": "BullMQ workers for AutoApply+Prep",
+  "main": "queue.js",
+  "scripts": {
+    "start": "node scrape.worker.js & node apply.worker.js & node interview.worker.js"
+  },
+  "keywords": ["bullmq", "workers", "automation"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bullmq": "^5.0.0",
+    "redis": "^4.6.12",
+    "@prisma/client": "^5.8.0",
+    "mongoose": "^8.0.3",
+    "playwright": "^1.40.1",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1"
+  }
+}

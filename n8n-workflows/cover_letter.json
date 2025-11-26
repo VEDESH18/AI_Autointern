@@ -1,0 +1,112 @@
+{
+  "name": "Cover Letter Generation Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-cover-letter",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "cover-letter-webhook"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/api/jobs/{{ $json.body.jobId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "name": "Get Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/api/resume/{{ $json.body.resumeId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "name": "Get Resume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 450]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional cover letter writer."
+            },
+            {
+              "role": "user",
+              "content": "=Write a compelling cover letter for {{ $('Get Job').item.json.title }} at {{ $('Get Job').item.json.company }}. Candidate name: {{ $('Get Resume').item.json.personalInfo.firstName }} {{ $('Get Resume').item.json.personalInfo.lastName }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "AI Generate",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [650, 375]
+    },
+    {
+      "parameters": {
+        "jsCode": "const coverLetter = $input.first().json.message.content;\nconst formatted = coverLetter\n  .replace(/\\n\\n/g, '</p><p>')\n  .replace(/^/, '<p>')\n  .replace(/$/, '</p>');\n\nreturn {\n  json: {\n    content: coverLetter,\n    htmlContent: formatted\n  }\n};"
+      },
+      "name": "Format Cover Letter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 375]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/api/cover-letter/save",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{ {\"jobId\": $json.body.jobId, \"content\": $json.content} }}"
+      },
+      "name": "Save to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 375]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Get Job", "type": "main", "index": 0 },
+          { "node": "Get Resume", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Job": {
+      "main": [[{ "node": "AI Generate", "type": "main", "index": 0 }]]
+    },
+    "Get Resume": {
+      "main": [[{ "node": "AI Generate", "type": "main", "index": 0 }]]
+    },
+    "AI Generate": {
+      "main": [[{ "node": "Format Cover Letter", "type": "main", "index": 0 }]]
+    },
+    "Format Cover Letter": {
+      "main": [[{ "node": "Save to Backend", "type": "main", "index": 0 }]]
+    }
+  }
+}

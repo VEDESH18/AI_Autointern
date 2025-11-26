@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autoapply-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: autoapply
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - autoapply-network
+
+  mongodb:
+    image: mongo:7
+    container_name: autoapply-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - autoapply-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: autoapply-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - autoapply-network
+
+  backend:
+    build: ./backend
+    container_name: autoapply-backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/autoapply?schema=public
+      MONGODB_URI: mongodb://admin:admin@mongodb:27017/autoapply?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: your-super-secret-jwt-key-change-this
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-this
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - autoapply-network
+
+  frontend:
+    build: ./frontend
+    container_name: autoapply-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: your-nextauth-secret-change-this
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - autoapply-network
+
+  workers:
+    build: ./backend
+    container_name: autoapply-workers
+    command: node workers/scrape.worker.js & node workers/apply.worker.js & node workers/interview.worker.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/autoapply?schema=public
+      MONGODB_URI: mongodb://admin:admin@mongodb:27017/autoapply?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook
+    depends_on:
+      - postgres
+      - mongodb
+      - redis
+      - backend
+    networks:
+      - autoapply-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: autoapply-n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/workflows
+    networks:
+      - autoapply-network
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  n8n_data:
+
+
+networks:
+  autoapply-network:
+    driver: bridge

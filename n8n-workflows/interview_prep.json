@@ -1,0 +1,69 @@
+{
+  "name": "Interview Prep Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prep-interview",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "interview-prep-webhook"
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/api/interview/questions",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{ {\"jobId\": $json.body.jobId} }}"
+      },
+      "name": "Generate Questions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "interview_sessions",
+        "fields": "interviewId,userId,jobTitle,questionsGenerated",
+        "options": {}
+      },
+      "name": "Save Session",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://localhost:5000/webhook/notify-interview-ready",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{ {\"userId\": $json.body.userId, \"interviewId\": $json.id, \"message\": \"Your interview prep is ready!\"} }}"
+      },
+      "name": "Notify User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Generate Questions", "type": "main", "index": 0 }]]
+    },
+    "Generate Questions": {
+      "main": [[{ "node": "Save Session", "type": "main", "index": 0 }]]
+    },
+    "Save Session": {
+      "main": [[{ "node": "Notify User", "type": "main", "index": 0 }]]
+    }
+  }
+}

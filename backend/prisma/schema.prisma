@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String?
+  firstName     String?
+  lastName      String?
+  phone         String?
+  googleId      String?  @unique
+  refreshToken  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  resumes       Resume[]
+  applications  Application[]
+  interviews    Interview[]
+}
+
+model Resume {
+  id              String   @id @default(uuid())
+  userId          String
+  title           String
+  personalInfo    Json
+  experience      Json
+  education       Json
+  skills          Json
+  projects        Json?
+  certifications  Json?
+  pdfUrl          String?
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications    Application[]
+  
+  @@index([userId])
+}
+
+model Application {
+  id              String   @id @default(uuid())
+  userId          String
+  resumeId        String
+  jobId           String
+  jobTitle        String
+  company         String
+  status          String   @default("pending")
+  appliedAt       DateTime?
+  screenshotUrl   String?
+  coverLetter     String?
+  logs            Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume          Resume   @relation(fields: [resumeId], references: [id])
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model Interview {
+  id              String   @id @default(uuid())
+  userId          String
+  jobTitle        String
+  company         String?
+  questions       Json
+  answers         Json?
+  score           Float?
+  feedback        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}

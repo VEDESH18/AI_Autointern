@@ -1,0 +1,82 @@
+{
+  "name": "Analytics Report Cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/apply/stats",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "name": "Fetch Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats = $input.first().json;\nconst report = [\n  ['Metric', 'Value'],\n  ['Total Applications', stats.total],\n  ['Successful', stats.success],\n  ['Pending', stats.pending],\n  ['Failed', stats.failed],\n  ['Success Rate', stats.successRate + '%']\n];\n\nreturn {\n  json: {\n    reportData: report,\n    summary: `Weekly Report: ${stats.total} applications, ${stats.successRate}% success rate`\n  }\n};"
+      },
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "YOUR_SHEET_ID",
+        "range": "A:E",
+        "options": {}
+      },
+      "name": "Update Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@autoapply.com",
+        "toEmail": "user@example.com",
+        "subject": "=Weekly Application Report - {{ $now.format('YYYY-MM-DD') }}",
+        "emailType": "html",
+        "message": "=<h2>Weekly Application Summary</h2><p>{{ $json.summary }}</p>",
+        "options": {}
+      },
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": {
+      "main": [[{ "node": "Fetch Stats", "type": "main", "index": 0 }]]
+    },
+    "Fetch Stats": {
+      "main": [[{ "node": "Format Report", "type": "main", "index": 0 }]]
+    },
+    "Format Report": {
+      "main": [[{ "node": "Update Google Sheet", "type": "main", "index": 0 }]]
+    },
+    "Update Google Sheet": {
+      "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]]
+    }
+  }
+}
