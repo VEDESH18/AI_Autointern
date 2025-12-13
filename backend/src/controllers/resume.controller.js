@@ -55,6 +55,15 @@ class ResumeController {
       next(error);
     }
   }
+
+  async downloadResume(req, res, next) {
+    try {
+      const { filepath, filename } = await resumeService.downloadResume(req.params.id, req.userId);
+      res.download(filepath, filename);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ResumeController();

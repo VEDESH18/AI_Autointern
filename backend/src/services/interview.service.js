@@ -3,32 +3,71 @@ const prisma = require('../utils/prisma');
 const Job = require('../models/Job');
 
 class InterviewService {
-  async generateQuestions(userId, jobId) {
-    const job = await Job.findById(jobId);
-    if (!job) {
-      throw new Error('Job not found');
+  async generateQuestions(userId, jobId, jobDetails = {}) {
+    let jobTitle, company, skills, jobDescription;
+
+    console.log('generateQuestions called with:', { userId, jobId, hasJobDetails: !!jobDetails.jobTitle });
+
+    if (jobId) {
+      // Old format: fetch job from database
+      const job = await Job.findById(jobId);
+      if (!job) {
+        throw new Error('Job not found');
+      }
+      jobTitle = job.title;
+      company = job.company;
+      skills = job.skills || [];
+      jobDescription = job.description;
+    } else if (jobDetails.jobTitle) {
+      // New format: use provided details
+      jobTitle = jobDetails.jobTitle;
+      company = jobDetails.company || 'Unknown Company';
+      skills = [];
+      jobDescription = jobDetails.jobDescription || '';
+      
+      // Extract skills from description if available
+      if (jobDescription) {
+        const skillKeywords = [
+          'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'React', 'Angular', 
+          'Vue', 'Node.js', 'Express', 'Django', 'Flask', 'Spring', 'SQL', 'MongoDB',
+          'PostgreSQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Git'
+        ];
+        const text = jobDescription.toLowerCase();
+        skills = skillKeywords.filter(skill => text.includes(skill.toLowerCase()));
+      }
+    } else {
+      throw new Error('Either jobId or job details (jobTitle, company) are required');
     }
 
-    const questions = await this.getQuestionsForRole(job.title, job.skills);
+    console.log('Generating questions for:', { jobTitle, company, skillCount: skills.length });
+    const questions = await this.getQuestionsForRole(jobTitle, company, skills, jobDescription);
+    console.log('Generated', questions.length, 'questions');
 
     const interview = await prisma.interview.create({
       data: {
         userId,
-        jobTitle: job.title,
-        company: job.company,
+        jobTitle,
+        company,
         questions: { items: questions }
       }
     });
 
+    console.log('Interview saved to database with ID:', interview.id);
     return interview;
   }
 
-  async getQuestionsForRole(jobTitle, skills) {
+  async getQuestionsForRole(jobTitle, company, skills, jobDescription = '') {
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-openai-api-key') {
-      return this.getTemplateQuestions(jobTitle, skills);
+      console.log('Using template questions (no OpenAI API key)');
+      return this.getTemplateQuestions(jobTitle, company, skills);
     }
 
     try {
+      const skillsText = skills.length > 0 ? skills.join(', ') : 'general software development skills';
+      const descText = jobDescription ? `\n\nJob Description: ${jobDescription.substring(0, 500)}` : '';
+      const companyText = company ? ` at ${company}` : '';
+      
+      console.log('Calling OpenAI API for questions');
       const response = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -40,7 +79,7 @@ class InterviewService {
             },
             {
               role: 'user',
-              content: `Generate 15 interview questions for a ${jobTitle} position. Skills required: ${skills.join(', ')}.
+              content: `Generate 15 interview questions for a ${jobTitle} position${companyText}. Skills required: ${skillsText}.${descText}
               
 Include:
 - 5 technical questions
@@ -63,14 +102,15 @@ Format as JSON array with objects containing: question, type, difficulty`
 
       const content = response.data.choices[0].message.content;
       const jsonMatch = content.match(/\[[\s\S]*\]/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.getTemplateQuestions(jobTitle, skills);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : this.getTemplateQuestions(jobTitle, company, skills);
     } catch (error) {
       console.error('OpenAI error:', error.message);
-      return this.getTemplateQuestions(jobTitle, skills);
+      return this.getTemplateQuestions(jobTitle, company, skills);
     }
   }
 
-  getTemplateQuestions(jobTitle, skills) {
+  getTemplateQuestions(jobTitle, company, skills) {
+    const companyText = company ? ` at ${company}` : '';
     return [
       {
         question: "Tell me about yourself and your background.",
@@ -78,7 +118,12 @@ Format as JSON array with objects containing: question, type, difficulty`
         difficulty: "easy"
       },
       {
-        question: `What interests you about this ${jobTitle} position?`,
+        question: `What interests you about this ${jobTitle} position${companyText}?`,
+        type: "behavioral",
+        difficulty: "easy"
+      },
+      {
+        question: company ? `Why do you want to work at ${company}?` : "Why are you interested in this company?",
         type: "behavioral",
         difficulty: "easy"
       },
@@ -245,6 +290,22 @@ Format as JSON array with objects containing: question, type, difficulty`
     }
 
     return interview;
+  }
+
+  async deleteInterview(interviewId, userId) {
+    const interview = await prisma.interview.findFirst({
+      where: { id: interviewId, userId }
+    });
+
+    if (!interview) {
+      throw new Error('Interview not found');
+    }
+
+    await prisma.interview.delete({
+      where: { id: interviewId }
+    });
+
+    return { message: 'Interview deleted successfully' };
   }
 }
 

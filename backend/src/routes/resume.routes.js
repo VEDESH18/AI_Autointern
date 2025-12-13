@@ -150,6 +150,26 @@ router.post('/:id/pdf', authenticate, resumeController.generatePDF);
 
 /**
  * @swagger
+ * /resume/{id}/download:
+ *   get:
+ *     summary: Download resume as PDF
+ *     tags: [Resume]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF file
+ */
+router.get('/:id/download', authenticate, resumeController.downloadResume);
+
+/**
+ * @swagger
  * /resume/{id}:
  *   delete:
  *     summary: Delete resume

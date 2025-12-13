@@ -239,6 +239,26 @@ class ResumeService {
 
     return { message: 'Resume deleted successfully' };
   }
+
+  async downloadResume(resumeId, userId) {
+    const resume = await this.getResumeById(resumeId, userId);
+    
+    // If PDF doesn't exist, generate it first
+    if (!resume.pdfUrl) {
+      await this.generatePDF(resumeId, userId);
+      const updatedResume = await this.getResumeById(resumeId, userId);
+      resume.pdfUrl = updatedResume.pdfUrl;
+    }
+
+    const filepath = path.join(__dirname, '../../', resume.pdfUrl);
+    
+    if (!fs.existsSync(filepath)) {
+      throw new Error('PDF file not found. Please regenerate the resume.');
+    }
+
+    const filename = `resume_${resume.personalInfo.firstName}_${resume.personalInfo.lastName}.pdf`;
+    return { filepath, filename };
+  }
 }
 
 module.exports = new ResumeService();

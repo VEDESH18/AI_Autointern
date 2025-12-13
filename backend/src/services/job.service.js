@@ -6,6 +6,7 @@ class JobScraperService {
   async scrapeJob(url, userId) {
     let browser;
     try {
+      console.log('Starting scraping for URL:', url);
       browser = await chromium.launch({ headless: true });
       const page = await browser.newPage();
       
@@ -16,6 +17,19 @@ class JobScraperService {
       const $ = cheerio.load(html);
       
       const extractedData = this.extractJobData($, url);
+      console.log('Extracted data:', { 
+        title: extractedData.title, 
+        company: extractedData.company,
+        location: extractedData.location 
+      });
+      
+      // Ensure required fields are present
+      if (!extractedData.title || extractedData.title.trim() === '') {
+        extractedData.title = 'Job Title Not Found';
+      }
+      if (!extractedData.company || extractedData.company.trim() === '') {
+        extractedData.company = 'Company Not Found';
+      }
       
       const job = await Job.findOneAndUpdate(
         { url },
@@ -28,10 +42,12 @@ class JobScraperService {
         { upsert: true, new: true }
       );
 
+      console.log('Job saved to DB with ID:', job._id);
       await browser.close();
       
       return job;
     } catch (error) {
+      console.error('Scraping error:', error);
       if (browser) await browser.close();
       throw new Error(`Scraping failed: ${error.message}`);
     }
@@ -129,6 +145,8 @@ class JobScraperService {
   async getAllJobs(userId, filters = {}) {
     const query = { userId };
     
+    console.log('Query for getAllJobs:', query);
+    
     if (filters.title) {
       query.$text = { $search: filters.title };
     }
@@ -145,6 +163,7 @@ class JobScraperService {
       .sort({ scrapedAt: -1 })
       .limit(filters.limit || 50);
     
+    console.log('Jobs found in DB:', jobs.length);
     return jobs;
   }
 

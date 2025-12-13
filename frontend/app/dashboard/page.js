@@ -32,11 +32,17 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Welcome back, {user.firstName}! 👋</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Here's your application overview</p>
+      </div>
+
+      <div className="hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="text-2xl font-bold text-blue-600">AutoApply+Prep</div>
+            <div className="text-2xl font-bold text-blue-600">AutoApply</div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {user.firstName}</span>
               <Button variant="outline" onClick={() => router.push('/jobs')}>
@@ -54,11 +60,10 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-
+      <main className="max-w-7xl mx-auto">
+        {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-3">

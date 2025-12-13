@@ -51,17 +51,51 @@ export default function ResumePage() {
     e.preventDefault();
     setCreating(true);
     try {
-      // Parse arrays from comma-separated strings
+      // Split fullName into firstName and lastName
+      const nameParts = formData.fullName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Format the data according to backend schema
       const payload = {
-        ...formData,
-        experience: formData.experience ? formData.experience.split('\n').map(item => item.trim()).filter(Boolean) : [],
-        education: formData.education ? formData.education.split('\n').map(item => item.trim()).filter(Boolean) : [],
-        skills: formData.skills ? formData.skills.split(',').map(item => item.trim()).filter(Boolean) : [],
-        certifications: formData.certifications ? formData.certifications.split(',').map(item => item.trim()).filter(Boolean) : [],
-        languages: formData.languages ? formData.languages.split(',').map(item => item.trim()).filter(Boolean) : []
+        title: formData.title || 'My Resume',
+        personalInfo: {
+          firstName,
+          lastName,
+          email: formData.email,
+          phone: formData.phone,
+          location: formData.location,
+          summary: formData.summary
+        },
+        experience: formData.experience ? formData.experience.split('\n').filter(Boolean).map(item => {
+          const parts = item.split('|').map(p => p.trim());
+          return {
+            title: parts[0] || '',
+            company: parts[1] || '',
+            startDate: parts[2] || '',
+            endDate: parts[3] || '',
+            highlights: parts[4] ? [parts[4]] : []
+          };
+        }) : [],
+        education: formData.education ? formData.education.split('\n').filter(Boolean).map(item => {
+          const parts = item.split('|').map(p => p.trim());
+          return {
+            degree: parts[0] || '',
+            institution: parts[1] || '',
+            startDate: parts[2] || '',
+            endDate: parts[3] || '',
+            gpa: parts[4] || ''
+          };
+        }) : [],
+        skills: {
+          technical: formData.skills ? formData.skills.split(',').map(item => item.trim()).filter(Boolean) : [],
+          soft: []
+        },
+        projects: [],
+        certifications: formData.certifications ? formData.certifications.split(',').map(item => item.trim()).filter(Boolean) : []
       };
 
-      await api.post('/resume', payload);
+      await api.post('/resume/save', payload);
       alert('Resume created successfully!');
       setFormData({
         title: '',
@@ -219,24 +253,30 @@ export default function ResumePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Experience (one per line)</label>
+                    <label className="block text-sm font-medium mb-1">Experience</label>
+                    <small className="text-gray-500 block mb-1">
+                      Format: Title | Company | Start Date | End Date | Key Achievement
+                    </small>
                     <textarea
                       className="w-full px-3 py-2 border rounded-md"
                       rows="4"
                       value={formData.experience}
                       onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                      placeholder="Senior Developer at Company (2020-2023)&#10;Junior Developer at StartUp (2018-2020)"
+                      placeholder="Senior Developer | Tech Corp | Jan 2020 | Present | Led team of 5 developers&#10;Junior Developer | StartUp Inc | Jun 2018 | Dec 2019 | Built REST APIs"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Education (one per line)</label>
+                    <label className="block text-sm font-medium mb-1">Education</label>
+                    <small className="text-gray-500 block mb-1">
+                      Format: Degree | Institution | Start Date | End Date | GPA
+                    </small>
                     <textarea
                       className="w-full px-3 py-2 border rounded-md"
                       rows="3"
                       value={formData.education}
                       onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                      placeholder="BS Computer Science, University (2018)&#10;AWS Certified Developer (2021)"
+                      placeholder="BS Computer Science | MIT | 2014 | 2018 | 3.8&#10;High School Diploma | Lincoln High | 2010 | 2014 |"
                     />
                   </div>
 

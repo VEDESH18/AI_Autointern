@@ -7,7 +7,9 @@ const { validate } = require('../middleware/validation.middleware');
 const router = express.Router();
 
 const generateQuestionsSchema = z.object({
-  jobId: z.string()
+  jobTitle: z.string(),
+  company: z.string(),
+  jobDescription: z.string().optional()
 });
 
 const submitAnswersSchema = z.object({
@@ -41,6 +43,7 @@ const submitAnswersSchema = z.object({
  *       200:
  *         description: Questions generated
  */
+router.post('/generate', authenticate, validate(generateQuestionsSchema), interviewController.generateQuestions);
 router.post('/questions', authenticate, validate(generateQuestionsSchema), interviewController.generateQuestions);
 
 /**
@@ -70,6 +73,7 @@ router.post('/questions', authenticate, validate(generateQuestionsSchema), inter
  *         description: Answers evaluated
  */
 router.post('/evaluate', authenticate, validate(submitAnswersSchema), interviewController.submitAnswers);
+router.post('/:id/evaluate', authenticate, interviewController.submitAnswers);
 
 /**
  * @swagger
@@ -83,6 +87,7 @@ router.post('/evaluate', authenticate, validate(submitAnswersSchema), interviewC
  *       200:
  *         description: Interview history
  */
+router.get('/', authenticate, interviewController.getHistory);
 router.get('/history', authenticate, interviewController.getHistory);
 
 /**
@@ -104,5 +109,25 @@ router.get('/history', authenticate, interviewController.getHistory);
  *         description: Interview details
  */
 router.get('/:id', authenticate, interviewController.getInterview);
+
+/**
+ * @swagger
+ * /interview/{id}:
+ *   delete:
+ *     summary: Delete interview by ID
+ *     tags: [Interview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Interview deleted
+ */
+router.delete('/:id', authenticate, interviewController.deleteInterview);
 
 module.exports = router;

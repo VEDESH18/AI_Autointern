@@ -6,8 +6,10 @@ class JobController {
     try {
       const { url } = req.body;
       const userId = req.userId;
+      console.log('Scraping job for userId:', userId);
       
       const job = await jobService.scrapeJob(url, userId);
+      console.log('Job scraped successfully:', job.title, job._id);
       
       // Trigger n8n webhook for job scraping
       try {
@@ -30,6 +32,7 @@ class JobController {
   async getJobs(req, res, next) {
     try {
       const userId = req.userId;
+      console.log('Fetching jobs for userId:', userId);
       const filters = {
         title: req.query.title,
         company: req.query.company,
@@ -38,6 +41,7 @@ class JobController {
       };
       
       const jobs = await jobService.getAllJobs(userId, filters);
+      console.log('Found jobs:', jobs.length);
       res.json(jobs);
     } catch (error) {
       next(error);
